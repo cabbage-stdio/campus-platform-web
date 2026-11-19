@@ -35,7 +35,6 @@ import { getToken } from "@/utils/auth"
 const { proxy } = getCurrentInstance()
 
 const quillEditorRef = ref()
-const uploadUrl = ref(import.meta.env.VITE_APP_BASE_API + "/common/upload") // 上传的图片服务器地址
 const headers = ref({
   Authorization: "Bearer " + getToken()
 })
@@ -44,6 +43,10 @@ const props = defineProps({
   /* 编辑器的内容 */
   modelValue: {
     type: String,
+  },
+  uploadAction: {
+    type: String,
+    default: "/common/upload"
   },
   /* 高度 */
   height: {
@@ -71,6 +74,8 @@ const props = defineProps({
     default: "url",
   }
 })
+
+const uploadUrl = computed(() => import.meta.env.VITE_APP_BASE_API + props.uploadAction)
 
 const options = ref({
   theme: "snow",
@@ -131,10 +136,7 @@ onMounted(() => {
 
 // 上传前校检格式和大小
 function handleBeforeUpload(file) {
-  const type = ["image/jpeg", "image/jpg", "image/png", "image/svg"]
-  const isJPG = type.includes(file.type)
-  //检验文件格式
-  if (!isJPG) {
+  if (!/\.(bmp|gif|jpe?g|png)$/i.test(file.name)) {
     proxy.$modal.msgError(`图片格式错误!`)
     return false
   }
@@ -156,13 +158,13 @@ function handleUploadSuccess(res, file) {
     // 获取富文本实例
     let quill = toRaw(quillEditorRef.value).getQuill()
     // 获取光标位置
-    let length = quill.selection.savedRange.index
-    // 插入图片，res.url为服务器返回的图片链接地址
+    let length = quill.selection.savedRange?.index ?? quill.getLength() - 1
+    // 使用可保存的图片路径，重新打开公告时仍能读取
     quill.insertEmbed(length, "image", import.meta.env.VITE_APP_BASE_API + res.fileName)
     // 调整光标到最后
     quill.setSelection(length + 1)
   } else {
-    proxy.$modal.msgError("图片插入失败")
+    proxy.$modal.msgError(res.msg || "图片插入失败")
   }
 }
 
@@ -187,11 +189,12 @@ function handlePasteCapture(e) {
 }
 
 function insertImage(file) {
+  if (!file || !handleBeforeUpload(file)) return
   const formData = new FormData()
   formData.append("file", file)
   axios.post(uploadUrl.value, formData, { headers: { "Content-Type": "multipart/form-data", Authorization: headers.value.Authorization } }).then(res => {
     handleUploadSuccess(res.data)
-  })
+  }).catch(handleUploadError)
 }
 </script>
 

@@ -143,7 +143,7 @@
                </el-col>
                <el-col :span="24">
                   <el-form-item label="内容">
-                    <editor v-model="form.noticeContent" :min-height="192"/>
+                    <editor v-model="form.noticeContent" upload-action="/system/notice/image" :min-height="192" />
                   </el-form-item>
                </el-col>
             </el-row>

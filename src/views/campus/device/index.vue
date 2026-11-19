@@ -125,7 +125,6 @@
         <template #default="scope">
           <el-button
             link
-            style="color: #000"
             @click="handleDetail(scope.row)"
             v-hasPermi="['campus:device:query']"
           >
